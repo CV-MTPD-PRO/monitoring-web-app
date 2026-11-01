@@ -1,11 +1,16 @@
 import { env } from '$env/dynamic/private';
 
-const PRIMARY_URL = env.RPI_ENDPOINT_URL || 'https://embed.matapadi.biz.id';
+function cleanEnv(val: string | undefined, fallback: string): string {
+  if (!val) return fallback;
+  return val.trim().replace(/^["']|["']$/g, '');
+}
+
+const PRIMARY_URL = cleanEnv(env.RPI_ENDPOINT_URL, 'https://embed.matapadi.biz.id');
 const FALLBACK_URL = PRIMARY_URL.includes('embed.matapadi.biz.id') 
   ? 'http://100.122.214.106:8080' 
   : 'https://embed.matapadi.biz.id';
 
-const API_KEY = env.API_SECRET_KEY || 'mtpd_sec_7x9Qk2vL4mN8pW1zR6yH3cB5fJ0dK4tG';
+const API_KEY = cleanEnv(env.API_SECRET_KEY, 'mtpd_sec_7x9Qk2vL4mN8pW1zR6yH3cB5fJ0dK4tG');
 
 /**
  * Robust fetch wrapper that queries Raspberry Pi via primary endpoint
@@ -54,3 +59,4 @@ export async function fetchRpi(path: string, options: RequestInit = {}): Promise
     throw new Error(`Koneksi ke RPi gagal di kedua jalur: ${err.message}`);
   }
 }
+
