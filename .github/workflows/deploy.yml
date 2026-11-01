@@ -68,12 +68,13 @@ jobs:
             # Tarik image terbaru
             sudo docker pull ghcr.io/$REPO:latest
             
-            # Buat file .env jika belum ada
-            touch .env
+            # Buat file .env jika belum ada dan berikan izin tulis
+            sudo touch .env
+            sudo chmod 666 .env
             
             # Tulis kredensial dari GitHub Secrets ke dalam file .env server
-            sed -i '/^DASHBOARD_USERNAME=/d' .env
-            sed -i '/^DASHBOARD_PASSWORD=/d' .env
+            sed -i '/^DASHBOARD_USERNAME=/d' .env 2>/dev/null || true
+            sed -i '/^DASHBOARD_PASSWORD=/d' .env 2>/dev/null || true
             echo "DASHBOARD_USERNAME=\"$DASHBOARD_USERNAME\"" >> .env
             echo "DASHBOARD_PASSWORD=\"$DASHBOARD_PASSWORD\"" >> .env
             
