@@ -42,3 +42,4 @@ export function verifySignedSessionToken(token: string | undefined): boolean {
         return false;
     }
 }
+

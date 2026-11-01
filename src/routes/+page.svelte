@@ -134,8 +134,18 @@
       
       <div class="video-container">
         {#if stats.status === 'online'}
-          <!-- Menyedot siaran MJPEG via HTTP -->
-          <img src="https://monitoring.matapadi.biz.id/stream" alt="Live Camera" class="live-stream" />
+          <!-- Menyedot siaran MJPEG (dengan failover otomatis ke Cloudflare Tunnel) -->
+          <img 
+            src="/stream" 
+            onerror={(e) => {
+              const target = e.currentTarget as HTMLImageElement;
+              if (target.src !== 'https://embed.matapadi.biz.id/stream') {
+                target.src = 'https://embed.matapadi.biz.id/stream';
+              }
+            }}
+            alt="Live Camera" 
+            class="live-stream" 
+          />
         {:else}
           <div class="offline-screen">
             <p class="text-red">RPi Tunnel is Offline</p>
