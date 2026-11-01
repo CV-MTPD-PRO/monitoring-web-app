@@ -68,15 +68,21 @@ jobs:
             # Tarik image terbaru
             sudo docker pull ghcr.io/$REPO:latest
             
-            # Buat file .env jika belum ada dan berikan izin tulis
+            # Lindungi file .env di server: buat jika belum ada, JANGAN timpa jika sudah terisi
             sudo touch .env
             sudo chmod 666 .env
             
-            # Tulis kredensial dari GitHub Secrets ke dalam file .env server
-            sed -i '/^DASHBOARD_USERNAME=/d' .env 2>/dev/null || true
-            sed -i '/^DASHBOARD_PASSWORD=/d' .env 2>/dev/null || true
-            echo "DASHBOARD_USERNAME=\"$DASHBOARD_USERNAME\"" >> .env
-            echo "DASHBOARD_PASSWORD=\"$DASHBOARD_PASSWORD\"" >> .env
+            # Hanya isi dari GitHub Secrets jika variabel TIDAK kosong dan belum ada di .env
+            if [ -n "$DASHBOARD_USERNAME" ]; then
+              if ! grep -q "^DASHBOARD_USERNAME=" .env; then
+                echo "DASHBOARD_USERNAME=\"$DASHBOARD_USERNAME\"" >> .env
+              fi
+            fi
+            if [ -n "$DASHBOARD_PASSWORD" ]; then
+              if ! grep -q "^DASHBOARD_PASSWORD=" .env; then
+                echo "DASHBOARD_PASSWORD=\"$DASHBOARD_PASSWORD\"" >> .env
+              fi
+            fi
             
             # Memuat variabel dari .env lokal (agar API_SECRET_KEY terbaca)
             export $(grep -v '^#' .env | xargs)
@@ -84,7 +90,7 @@ jobs:
             # Mendapatkan Timestamp unik untuk memaksa Swarm restart tanpa perlu `--force`
             DEPLOY_TIME=$(date +%s)
             
-            # Membuat konfigurasi YAML di RAM (Heredoc) dan mendeploynya secara In-Memory
+            # Blue-Green Deployment: Deploy konfigurasi dengan zero-downtime & auto-rollback
             cat << EOF | sudo docker stack deploy -c - abress --with-registry-auth
             version: '3.8'
             
@@ -99,11 +105,23 @@ jobs:
                   - .env
                 networks:
                   - front-tier
+                healthcheck:
+                  test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/ || exit 1"]
+                  interval: 10s
+                  timeout: 5s
+                  retries: 3
+                  start_period: 15s
                 deploy:
                   replicas: 2
                   update_config:
                     parallelism: 1
                     delay: 10s
+                    order: start-first
+                    failure_action: rollback
+                    monitor: 15s
+                  rollback_config:
+                    parallelism: 1
+                    order: stop-first
                   restart_policy:
                     condition: on-failure
                     max_attempts: 5

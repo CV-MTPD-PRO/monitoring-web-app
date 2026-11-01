@@ -10,11 +10,23 @@ services:
       - .env
     networks:
       - front-tier
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
     deploy:
       replicas: 2
       update_config:
         parallelism: 1
         delay: 10s
+        order: start-first
+        failure_action: rollback
+        monitor: 15s
+      rollback_config:
+        parallelism: 1
+        order: stop-first
       restart_policy:
         condition: on-failure
         max_attempts: 5
