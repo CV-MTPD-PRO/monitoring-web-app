@@ -1,8 +1,6 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { env } from '$env/dynamic/private';
-
-const RPI_URL = env.RPI_ENDPOINT_URL || 'http://100.122.214.106:8080';
+import { fetchRpi } from '$lib/rpiClient';
 
 export const POST: RequestHandler = async ({ request }) => {
     try {
@@ -10,11 +8,10 @@ export const POST: RequestHandler = async ({ request }) => {
         const pan = parseInt(body.pan || 0, 10);
         const tilt = parseInt(body.tilt || 0, 10);
 
-        const res = await fetch(`${RPI_URL}/api/camera/ptz`, {
+        const res = await fetchRpi('/api/camera/ptz', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': env.API_SECRET_KEY || 'mtpd_sec_7x9Qk2vL4mN8pW1zR6yH3cB5fJ0dK4tG'
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify({ pan, tilt })
         });

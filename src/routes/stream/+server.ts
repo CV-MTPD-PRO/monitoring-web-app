@@ -1,15 +1,9 @@
 import type { RequestHandler } from './$types';
-import { env } from '$env/dynamic/private';
-
-const RPI_URL = env.RPI_ENDPOINT_URL || 'http://100.122.214.106:8080';
+import { fetchRpi } from '$lib/rpiClient';
 
 export const GET: RequestHandler = async () => {
     try {
-        const upstream = await fetch(`${RPI_URL}/stream`, {
-            headers: {
-                'x-api-key': env.API_SECRET_KEY || 'mtpd_sec_7x9Qk2vL4mN8pW1zR6yH3cB5fJ0dK4tG'
-            }
-        });
+        const upstream = await fetchRpi('/stream');
 
         if (!upstream.ok || !upstream.body) {
             return new Response('Live stream not available from Raspberry Pi edge node', { 
@@ -35,3 +29,4 @@ export const GET: RequestHandler = async () => {
         });
     }
 };
+
