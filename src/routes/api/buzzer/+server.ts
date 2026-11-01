@@ -1,15 +1,15 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-
 import { env } from '$env/dynamic/private';
+
+const RPI_URL = env.RPI_ENDPOINT_URL || 'http://100.122.214.106:8080';
 
 export const POST: RequestHandler = async ({ request }) => {
     try {
         const body = await request.json();
         const mode = body.mode; // 'force_on' atau 'auto'
 
-        // Teruskan perintah ke RPi via Tailscale (Bypass Cloudflare)
-        const res = await fetch('http://100.122.214.106:8080/api/buzzer', {
+        const res = await fetch(`${RPI_URL}/api/buzzer`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -24,7 +24,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
         const data = await res.json();
         return json({ success: true, data });
-    } catch (e) {
+    } catch (e: any) {
         return json({ success: false, error: e.message }, { status: 500 });
     }
 };

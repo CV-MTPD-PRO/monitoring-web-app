@@ -1,18 +1,17 @@
 import type { Handle } from '@sveltejs/kit';
 import { redirect } from '@sveltejs/kit';
+import { verifySignedSessionToken, SESSION_COOKIE_NAME } from '$lib/auth';
 
 export const handle: Handle = async ({ event, resolve }) => {
-	// Fitur Keamanan: Membaca cookie sesi
-	const session = event.cookies.get('sparrow_session');
+	const sessionToken = event.cookies.get(SESSION_COOKIE_NAME);
+	const isAuthenticated = verifySignedSessionToken(sessionToken);
 	const isLoginPage = event.url.pathname === '/login';
-
 	const isApiRoute = event.url.pathname.startsWith('/api');
 
-	// Jika belum login dan mencoba mengakses halaman selain login
-	if (!session && !isLoginPage) {
+	// Jika belum terotentikasi dan mencoba mengakses selain login
+	if (!isAuthenticated && !isLoginPage) {
 		if (isApiRoute) {
-			// Cegah SvelteKit me-redirect fetch JSON ke halaman HTML
-			return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+			return new Response(JSON.stringify({ error: { code: 'UNAUTHORIZED', message: 'Sesi tidak valid atau telah berakhir' } }), {
 				status: 401,
 				headers: { 'Content-Type': 'application/json' }
 			});
@@ -20,8 +19,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 		throw redirect(303, '/login');
 	}
 
-	// Jika sudah login tapi mencoba masuk ke halaman login, lemparkan ke dashboard
-	if (session === 'authenticated_true' && isLoginPage) {
+	// Jika sudah login tapi mencoba masuk ke halaman login
+	if (isAuthenticated && isLoginPage) {
 		throw redirect(303, '/');
 	}
 
