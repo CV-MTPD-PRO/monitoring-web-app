@@ -1,0 +1,115 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap');
+
+:root {
+  /* Clean Light Theme Colors */
+  --bg-color: #f8fafc;
+  --panel-bg: rgba(255, 255, 255, 0.7);
+  --panel-border: rgba(0, 0, 0, 0.05);
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  
+  --accent-primary: #166534; /* Forest Green MATAPADI */
+  --accent-green: #10b981; /* Emerald Green */
+  --accent-red: #ef4444; /* Coral Red */
+  
+  --glass-blur: blur(16px);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Outfit', sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-image: 
+    radial-gradient(circle at 15% 50%, rgba(22, 101, 52, 0.03), transparent 25%),
+    radial-gradient(circle at 85% 30%, rgba(16, 185, 129, 0.03), transparent 25%);
+  background-attachment: fixed;
+}
+
+/* Glassmorphism Panel Class */
+.glass-panel {
+  background: var(--panel-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--panel-border);
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.03); /* Soft shadow, not glow */
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.glass-panel:hover {
+  border-color: rgba(0, 0, 0, 0.1);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.06);
+  transform: translateY(-2px);
+}
+
+/* Modern Inputs & Buttons */
+.cyber-input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  color: var(--text-main);
+  padding: 0.8rem 1.2rem;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.cyber-input:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(22, 101, 52, 0.1);
+}
+
+.cyber-button {
+  background: var(--accent-primary);
+  color: #ffffff;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  border-radius: 8px;
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(22, 101, 52, 0.2);
+}
+
+.cyber-button:hover {
+  background: #14532d;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(22, 101, 52, 0.3);
+}
+
+/* Typography Helpers */
+h1, h2, h3 {
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+.text-primary { color: var(--accent-primary); }
+.text-green { color: var(--accent-green); }
+.text-red { color: var(--accent-red); }
+
+/* Animation Utility - Clean Alert */
+@keyframes pulse-danger {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); border-color: var(--panel-border); }
+  50% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); border-color: var(--accent-red); transform: scale(1.01); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); border-color: var(--panel-border); }
+}
+
+.alert-pulse {
+  animation: pulse-danger 1.2s infinite !important;
+  background: rgba(239, 68, 68, 0.05) !important;
+  border-color: var(--accent-red) !important;
+}

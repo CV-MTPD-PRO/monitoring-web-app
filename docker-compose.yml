@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  web:
+    image: ghcr.io/cv-mtpd-pro/monitoring-web-app:latest
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    env_file:
+      - .env
+    networks:
+      - front-tier
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+        max_attempts: 5
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+networks:
+  front-tier:
+    external: true

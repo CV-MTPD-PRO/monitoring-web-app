@@ -1,0 +1,117 @@
+name: Deploy the Web App MTPD
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-push-image:
+    name: Build & Push to GHCR
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_PAT }}
+
+      # Mengubah nama repo menjadi huruf kecil karena GHCR hanya menerima huruf kecil
+      - name: Downcase REPO
+        run: |
+          echo "REPO=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/${{ env.REPO }}:latest
+
+  deploy-to-swarm:
+    name: Deploy to Proxmox
+    needs: build-and-push-image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Connect to Tailscale Network
+        uses: tailscale/github-action@v2
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+
+      - name: Deploy to Swarm Manager via SSH
+        uses: appleboy/ssh-action@v1.0.0
+        env:
+          DASHBOARD_USERNAME: ${{ secrets.DASHBOARD_USERNAME }}
+          DASHBOARD_PASSWORD: ${{ secrets.DASHBOARD_PASSWORD }}
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: DASHBOARD_USERNAME,DASHBOARD_PASSWORD
+          script: |
+            # Pindah ke folder target yang diambil dari GitHub Secrets
+            cd ${{ secrets.DEPLOY_PATH }}
+            
+            # Login ke GHCR untuk menarik image private
+            echo "${{ secrets.GHCR_PAT }}" | sudo docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            
+            # Mendapatkan nama repo dalam huruf kecil
+            REPO=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+            
+            # Tarik image terbaru
+            sudo docker pull ghcr.io/$REPO:latest
+            
+            # Buat file .env jika belum ada
+            touch .env
+            
+            # Tulis kredensial dari GitHub Secrets ke dalam file .env server
+            sed -i '/^DASHBOARD_USERNAME=/d' .env
+            sed -i '/^DASHBOARD_PASSWORD=/d' .env
+            echo "DASHBOARD_USERNAME=\"$DASHBOARD_USERNAME\"" >> .env
+            echo "DASHBOARD_PASSWORD=\"$DASHBOARD_PASSWORD\"" >> .env
+            
+            # Memuat variabel dari .env lokal (agar API_SECRET_KEY terbaca)
+            export $(grep -v '^#' .env | xargs)
+            
+            # Mendapatkan Timestamp unik untuk memaksa Swarm restart tanpa perlu `--force`
+            DEPLOY_TIME=$(date +%s)
+            
+            # Membuat konfigurasi YAML di RAM (Heredoc) dan mendeploynya secara In-Memory
+            cat << EOF | sudo docker stack deploy -c - abress --with-registry-auth
+            version: '3.8'
+            
+            services:
+              web:
+                image: ghcr.io/cv-mtpd-pro/monitoring-web-app:latest
+                environment:
+                  - NODE_ENV=production
+                  - PORT=3000
+                  - DEPLOY_TIME=\$DEPLOY_TIME
+                env_file:
+                  - .env
+                networks:
+                  - front-tier
+                deploy:
+                  replicas: 2
+                  update_config:
+                    parallelism: 1
+                    delay: 10s
+                  restart_policy:
+                    condition: on-failure
+                    max_attempts: 5
+                  resources:
+                    limits:
+                      cpus: '0.5'
+                      memory: 256M
+            
+            networks:
+              front-tier:
+                external: true
+            EOF
